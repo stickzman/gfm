@@ -4,7 +4,12 @@
 
 <script src="jquery-3.3.1.min.js"></script>
 <script>
-    let lines, i;
+    let lines, i, styleSheet;
+    fetch("https://raw.githubusercontent.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css").then(function(response) {
+        response.text().then(function(text) {
+            styleSheet = `<style>.markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; } @media (max-width: 767px) { .markdown-body { padding: 15px; } }${text}</style>`;
+        });
+    });
 
     function convert() {
         if ($("#input").val().trim().length == 0) {
@@ -12,26 +17,20 @@
             return;
         }
         lines = $("#input").val().split("\n");
-        fetch("https://raw.githubusercontent.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css").then(function(response) {
-            response.text().then(function(text) {
-                let styleSheet = `<style>.markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; } @media (max-width: 767px) { .markdown-body { padding: 15px; } }${text}</style>`;
-                
-                //Parse input/Build elements
-                let root = $("<div>").addClass("markdown-body");
-                for (i = 0; i < lines.length; i++) {
-                    if (/^#+ /.test(lines[i].trim()) && !/^#######+ /.test(lines[i].trim())) {
-                        //If it starts with >0 and <7 #s, it's a header
-                        parseHeader(root);
-                    } else if (lines[i].trim().length == 0) {
-                        //Break
-                        root.append($("<br>"));
-                    } else {
-                        parsePara(root);
-                    }
-                }
-                $("#output").val(root[0].outerHTML + "\n\n" + styleSheet);
-            });
-        });
+        //Parse input/Build elements
+        let root = $("<div>").addClass("markdown-body");
+        for (i = 0; i < lines.length; i++) {
+            if (/^#+ /.test(lines[i].trim()) && !/^#######+ /.test(lines[i].trim())) {
+                //If it starts with >0 and <7 #s, it's a header
+                parseHeader(root);
+            } else if (lines[i].trim().length == 0) {
+                //Break
+                root.append($("<br>"));
+            } else {
+                parsePara(root);
+            }
+        }
+        $("#output").val(root[0].outerHTML + "\n\n" + styleSheet);
     }
 
     function parsePara(parent) {
@@ -47,6 +46,7 @@
     }
 
     function parseHeader(parent) {
+        //Headers
         let str = lines[i].trim();
         let hashes = str.substr(0, str.indexOf(" ")).match(/#/g);
         let hNum = hashes.length;
