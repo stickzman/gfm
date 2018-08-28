@@ -4,66 +4,60 @@
 
 <script src="jquery-3.3.1.min.js"></script>
 <script>
+    let lines, i;
+
     function convert() {
-        let data = $("#input").val().split("\n");
-        let root = $("<div>").addClass("markdown-body");
-        //Parse input/Build elements
-        for (let i = 0; i < data.length; i++) {
-            if (/^# /.test(data[i].trim())){
-                //H1
-                let e = $("<h1>");
-                let str = data[i].substr(2);
-                e.append(parseBlock(str));
-                root.append(e);
-            } else if (/^## /.test(data[i].trim())){
-                //H2
-                let e = $("<h2>");
-                let str = data[i].substr(3);
-                e.append(parseBlock(str));
-                root.append(e);
-            } else if (/^### /.test(data[i].trim())){
-                //H3
-                let e = $("<h3>");
-                let str = data[i].substr(4);
-                e.append(parseBlock(str));
-                root.append(e);
-            } else if (/^#### /.test(data[i].trim())){
-                //H4
-                let e = $("<h4>");
-                let str = data[i].substr(5);
-                e.append(parseBlock(str));
-                root.append(e);
-            } else if (/^##### /.test(data[i].trim())){
-                //H5
-                let e = $("<h5>");
-                let str = data[i].substr(6);
-                e.append(parseBlock(str));
-                root.append(e);
-            } else if (/^###### /.test(data[i].trim())){
-                //H6
-                let e = $("<h6>");
-                let str = data[i].substr(7);
-                e.append(parseBlock(str));
-                root.append(e);
-            } else if (data[i].trim().length == 0) {
-                //Break
-                root.append($("<br>"));
-            } else {
-                //Paragraph
-                let e = $("<p>");
-                let str = data[i].trim();
-                while (i < data.length - 1 && !(/  $/.test(data[i]) ||
-                        data[i+1].trim().length == 0)) {
-                    str += " " + data[++i].trim();
-                }
-                e.append(parseBlock(str));
-                root.append(e);
-            }
+        if ($("#input").val().trim().length == 0) {
+            $("#output").val("");
+            return;
         }
-        $("#output").val(root[0].outerHTML);
+        lines = $("#input").val().split("\n");
+        fetch("https://raw.githubusercontent.com/sindresorhus/github-markdown-css/gh-pages/github-markdown.css").then(function(response) {
+            response.text().then(function(text) {
+                let styleSheet = `<style>.markdown-body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; } @media (max-width: 767px) { .markdown-body { padding: 15px; } }${text}</style>`;
+                
+                //Parse input/Build elements
+                let root = $("<div>").addClass("markdown-body");
+                for (i = 0; i < lines.length; i++) {
+                    if (/^#+ /.test(lines[i].trim()) && !/^#######+ /.test(lines[i].trim())) {
+                        //If it starts with >0 and <7 #s, it's a header
+                        parseHeader(root);
+                    } else if (lines[i].trim().length == 0) {
+                        //Break
+                        root.append($("<br>"));
+                    } else {
+                        parsePara(root);
+                    }
+                }
+                $("#output").val(root[0].outerHTML + "\n\n" + styleSheet);
+            });
+        });
     }
 
-    function parseBlock(str) {
-        return str;
+    function parsePara(parent) {
+        //Paragraph
+        let e = $("<p>");
+        let str = lines[i].trim();
+        while (i < lines.length - 1 && !(/  $/.test(lines[i]) ||
+                lines[i+1].trim().length == 0)) {
+            str += " " + lines[++i].trim();
+        }
+        e.append(parseLine(str, e));
+        parent.append(e);
+    }
+
+    function parseHeader(parent) {
+        let str = lines[i].trim();
+        let hashes = str.substr(0, str.indexOf(" ")).match(/#/g);
+        let hNum = hashes.length;
+        let e = $(`<h${hNum}>`);
+        str = str.substr(hNum + 1);
+        str = str.replace(/ #*$/, "");
+        parseLine(str, e);
+        parent.append(e);
+    }
+
+    function parseLine(str, parent) {
+        parent.append(str);
     }
 </script>
